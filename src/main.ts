@@ -2,6 +2,7 @@ import "./styles.css";
 
 import { AudioEngine } from "./audio";
 import { VisualizerScene } from "./scene";
+import { getTheme, getThemesByCategory, themeCategories, type ThemeCategoryId } from "./themes";
 import type { PointerState } from "./types";
 
 function getRequiredElement<T extends HTMLElement>(selector: string): T {
@@ -15,6 +16,7 @@ function getRequiredElement<T extends HTMLElement>(selector: string): T {
 }
 
 const canvas = getRequiredElement<HTMLCanvasElement>("#visualizer");
+const fullscreenButton = getRequiredElement<HTMLButtonElement>("#fullscreenButton");
 const micButton = getRequiredElement<HTMLButtonElement>("#micButton");
 const demoButton = getRequiredElement<HTMLButtonElement>("#demoButton");
 const fileInput = getRequiredElement<HTMLInputElement>("#fileInput");
@@ -22,6 +24,8 @@ const player = getRequiredElement<HTMLAudioElement>("#player");
 const statusText = getRequiredElement<HTMLParagraphElement>("#status");
 const energyInput = getRequiredElement<HTMLInputElement>("#energy");
 const bloomInput = getRequiredElement<HTMLInputElement>("#bloom");
+const themeCategoryInput = getRequiredElement<HTMLSelectElement>("#themeCategory");
+const themeInput = getRequiredElement<HTMLSelectElement>("#theme");
 
 const pointer: PointerState = { x: 0, y: 0 };
 
@@ -32,16 +36,69 @@ const setStatus = (message: string): void => {
 const audioEngine = new AudioEngine(player, () => Number(energyInput.value), setStatus);
 const scene = new VisualizerScene(canvas, { getBloom: () => Number(bloomInput.value) });
 
+async function toggleFullscreen(): Promise<void> {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`Fullscreen failed: ${message}`);
+  }
+}
+
+function syncFullscreenButton(): void {
+  const active = Boolean(document.fullscreenElement);
+  fullscreenButton.textContent = active ? "Exit fullscreen" : "Fullscreen";
+  document.body.classList.toggle("fullscreen-mode", active);
+}
+
+function renderThemeOptions(categoryId: string, selectedThemeId?: string): void {
+  const categoryThemes = getThemesByCategory(categoryId as ThemeCategoryId);
+  const nextThemeId = selectedThemeId && categoryThemes.some((theme) => theme.id === selectedThemeId)
+    ? selectedThemeId
+    : categoryThemes[0]?.id;
+
+  themeInput.innerHTML = "";
+
+  categoryThemes.forEach((theme) => {
+    const option = document.createElement("option");
+    option.value = theme.id;
+    option.textContent = theme.label;
+    option.selected = theme.id === nextThemeId;
+    themeInput.append(option);
+  });
+
+  if (nextThemeId) {
+    scene.applyTheme(getTheme(nextThemeId));
+    const theme = getTheme(nextThemeId);
+    setStatus(`Theme ready: ${theme.label}.`);
+  }
+}
+
+themeCategories.forEach((category) => {
+  const option = document.createElement("option");
+  option.value = category.id;
+  option.textContent = category.label;
+  themeCategoryInput.append(option);
+});
+
+themeCategoryInput.value = themeCategories[0].id;
+renderThemeOptions(themeCategoryInput.value, "bruise-bloom");
+
 function render(time: number): void {
   const profile = audioEngine.getProfile(time);
-  scene.render(
+  scene.render({
     profile,
     time,
     pointer,
-    audioEngine.getFrequencyData(),
-    audioEngine.getWaveformData(),
-    audioEngine.isAudioReady() && !audioEngine.isDemoMode()
-  );
+    frequencyData: audioEngine.getFrequencyData(),
+    waveformData: audioEngine.getWaveformData(),
+    isLive: audioEngine.isAudioReady() && !audioEngine.isDemoMode(),
+  });
 
   requestAnimationFrame(render);
 }
@@ -59,6 +116,10 @@ micButton.addEventListener("click", () => {
   void audioEngine.useMicrophone();
 });
 
+fullscreenButton.addEventListener("click", () => {
+  void toggleFullscreen();
+});
+
 demoButton.addEventListener("click", () => {
   audioEngine.setDemoMode();
 });
@@ -66,6 +127,16 @@ demoButton.addEventListener("click", () => {
 fileInput.addEventListener("change", (event) => {
   const [file] = (event.currentTarget as HTMLInputElement).files ?? [];
   audioEngine.useAudioFile(file);
+});
+
+themeCategoryInput.addEventListener("change", () => {
+  renderThemeOptions(themeCategoryInput.value);
+});
+
+themeInput.addEventListener("change", () => {
+  scene.applyTheme(getTheme(themeInput.value));
+  const theme = getTheme(themeInput.value);
+  setStatus(`Theme ready: ${theme.label}.`);
 });
 
 player.addEventListener("play", () => {
@@ -76,5 +147,10 @@ player.addEventListener("pause", () => {
   audioEngine.handlePlayerPause();
 });
 
+document.addEventListener("fullscreenchange", () => {
+  syncFullscreenButton();
+});
+
 scene.resize();
+syncFullscreenButton();
 requestAnimationFrame(render);

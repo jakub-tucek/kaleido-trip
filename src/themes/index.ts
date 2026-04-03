@@ -1,0 +1,28 @@
+import { bruiseBloomTheme } from "./bruise-bloom";
+import { glitterTearsTheme } from "./glitter-tears";
+import { shatterStrobeTheme } from "./shatter-strobe";
+import type { ThemeCategory, ThemeCategoryId, ThemeDefinition } from "./types";
+
+export type { ThemeCategory, ThemeCategoryId, ThemeDefinition } from "./types";
+
+export const themeCategories: ThemeCategory[] = [
+  { id: "indie-emo", label: "Indie Emo" },
+  { id: "dream-gaze", label: "Dream Gaze" },
+  { id: "club-kaleido", label: "Club Kaleido" },
+];
+
+export const themes: ThemeDefinition[] = [bruiseBloomTheme, glitterTearsTheme, shatterStrobeTheme];
+
+export function getThemesByCategory(categoryId: ThemeCategoryId): ThemeDefinition[] {
+  return themes.filter((theme) => theme.category === categoryId);
+}
+
+export function getTheme(themeId: string): ThemeDefinition {
+  const theme = themes.find((entry) => entry.id === themeId);
+
+  if (!theme) {
+    throw new Error(`Unknown theme: ${themeId}`);
+  }
+
+  return theme;
+}

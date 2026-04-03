@@ -33,7 +33,19 @@
         </label>
       </div>
 
+      <div class="stageActions">
+        <button id="fullscreenButton" type="button">Fullscreen</button>
+      </div>
+
       <div class="sliders">
+        <label>
+          <span>Theme category</span>
+          <select id="themeCategory"></select>
+        </label>
+        <label>
+          <span>Theme</span>
+          <select id="theme"></select>
+        </label>
         <label>
           <span>Energy</span>
           <input id="energy" type="range" min="0.5" max="2.5" step="0.01" value="1.35" />
@@ -44,7 +56,7 @@
         </label>
       </div>
 
-      <p id="status" class="status">Demo pulse is active. For live input, use a track or run on localhost for microphone access.</p>
+      <p id="status" class="status">Theme ready. Demo pulse is active. For live input, use a track or run on localhost for microphone access.</p>
       <audio id="player" controls></audio>
     </section>
 
