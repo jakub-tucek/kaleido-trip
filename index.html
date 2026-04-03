@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaleido Trip</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <canvas id="visualizer" aria-hidden="true"></canvas>
+
+    <div class="overlay"></div>
+
+    <section class="panel">
+      <p class="eyebrow">Live Background</p>
+      <h1>Kaleido Trip</h1>
+      <p class="description">
+        Dark bloom, bruised gradients, sharp pulses, and enough movement to sit behind a set without
+        becoming noise.
+      </p>
+
+      <div class="controls">
+        <button id="demoButton" type="button">Demo pulse</button>
+        <button id="micButton" type="button">Use microphone</button>
+        <label class="fileInput">
+          <span>Load track</span>
+          <input id="fileInput" type="file" accept="audio/*" />
+        </label>
+      </div>
+
+      <div class="sliders">
+        <label>
+          <span>Energy</span>
+          <input id="energy" type="range" min="0.5" max="2.5" step="0.01" value="1.35" />
+        </label>
+        <label>
+          <span>Bloom</span>
+          <input id="bloom" type="range" min="0" max="1" step="0.01" value="0.62" />
+        </label>
+      </div>
+
+      <p id="status" class="status">Demo pulse is active. For live input, use a track or run on localhost for microphone access.</p>
+      <audio id="player" controls></audio>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
