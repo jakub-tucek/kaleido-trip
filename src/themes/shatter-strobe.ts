@@ -5,7 +5,41 @@ export const shatterStrobeTheme: ThemeDefinition = {
   id: "shatter-strobe",
   label: "Shatter Strobe",
   category: "club-kaleido",
-  createRuntime: ({ canvas, controls }) => createSharedSpectrumRuntime(canvas, controls, shatterStrobeTheme),
+  modes: [
+    {
+      id: "burst",
+      label: "Burst",
+    },
+    {
+      id: "laser-grid",
+      label: "Laser Grid",
+      overrides: {
+        tuning: {
+          ringOpacityLevel: 0.24,
+          ribbonOpacityLevel: 0.32,
+          tunnelSaturation: 1,
+          lineOpacityLevel: 0.28,
+        },
+      },
+    },
+    {
+      id: "whiteout",
+      label: "Whiteout",
+      overrides: {
+        palette: {
+          tunnel: 0xffffff,
+          rimLight: 0xffffff,
+        },
+        tuning: {
+          clearLightnessBase: 0.06,
+          frontLightBloom: 7.4,
+          rimLightBloom: 2.4,
+          tunnelLightness: 0.9,
+        },
+      },
+    },
+  ],
+  createRuntime: ({ canvas, controls }, theme) => createSharedSpectrumRuntime(canvas, controls, theme),
   palette: {
     fog: 0x020308,
     ambient: 0x243464,
@@ -62,5 +96,7 @@ export const shatterStrobeTheme: ThemeDefinition = {
     tunnelLightness: 0.78,
     lineOpacityBase: 0.06,
     lineOpacityLevel: 0.22,
+    motionSpeed: 1.28,
+    motionAmount: 1.18,
   },
 };

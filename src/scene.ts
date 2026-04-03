@@ -13,7 +13,7 @@ export class VisualizerScene {
   applyTheme(theme: ThemeDefinition): void {
     this.currentRuntime?.dispose();
     this.currentTheme = theme;
-    this.currentRuntime = theme.createRuntime({ canvas: this.canvas, controls: this.controls });
+    this.currentRuntime = theme.createRuntime({ canvas: this.canvas, controls: this.controls }, theme);
     this.currentRuntime.resize();
   }
 

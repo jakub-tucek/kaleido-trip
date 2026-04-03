@@ -20,6 +20,17 @@ export type ThemeRuntimeContext = {
   controls: SceneControls;
 };
 
+export type ThemeOverrides = {
+  palette?: Partial<ThemeDefinition["palette"]>;
+  tuning?: Partial<ThemeDefinition["tuning"]>;
+};
+
+export type ThemeMode = {
+  id: string;
+  label: string;
+  overrides?: ThemeOverrides;
+};
+
 export type ThemeCategoryId = "indie-emo" | "dream-gaze" | "club-kaleido";
 
 export type ThemeCategory = {
@@ -31,7 +42,8 @@ export type ThemeDefinition = {
   id: string;
   label: string;
   category: ThemeCategoryId;
-  createRuntime: (context: ThemeRuntimeContext) => ThemeRuntime;
+  modes: ThemeMode[];
+  createRuntime: (context: ThemeRuntimeContext, theme: ThemeDefinition) => ThemeRuntime;
   palette: {
     fog: number;
     ambient: number;
@@ -88,5 +100,7 @@ export type ThemeDefinition = {
     tunnelLightness: number;
     lineOpacityBase: number;
     lineOpacityLevel: number;
+    motionSpeed: number;
+    motionAmount: number;
   };
 };

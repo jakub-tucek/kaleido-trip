@@ -185,6 +185,7 @@ class SharedSpectrumRuntime implements ThemeRuntime {
     const { profile, time, pointer, frequencyData, waveformData, isLive } = context;
     const { tuning } = this.theme;
     const bloom = this.controls.getBloom();
+    const motionSpeed = tuning.motionSpeed;
 
     this.renderer.setClearColor(
       new THREE.Color().setHSL(
@@ -200,8 +201,8 @@ class SharedSpectrumRuntime implements ThemeRuntime {
     this.frontLight.position.x = pointer.x * 4;
     this.frontLight.position.y = 1.2 + pointer.y * 2;
 
-    this.world.rotation.z = Math.sin(time * 0.0002) * 0.04;
-    this.world.position.z = Math.sin(time * 0.00035) * 0.3;
+    this.world.rotation.z = Math.sin(time * 0.0002 * motionSpeed) * 0.04 * tuning.motionAmount;
+    this.world.position.z = Math.sin(time * 0.00035 * motionSpeed) * 0.3 * tuning.motionAmount;
 
     this.updateCore(profile, time, bloom);
     this.updateRings(profile, time);
@@ -216,7 +217,7 @@ class SharedSpectrumRuntime implements ThemeRuntime {
 
   dispose(): void {
     this.renderer.dispose();
-    this.scene.traverse((object) => {
+    this.scene.traverse((object: THREE.Object3D) => {
       const mesh = object as THREE.Mesh;
       if (mesh.geometry) {
         mesh.geometry.dispose();
@@ -232,10 +233,10 @@ class SharedSpectrumRuntime implements ThemeRuntime {
 
   private updateCore(profile: Profile, time: number, bloom: number): void {
     const { tuning } = this.theme;
-    const pulse = 1 + profile.bass * 0.55 + Math.sin(time * 0.004) * 0.05;
+    const pulse = 1 + profile.bass * 0.55 + Math.sin(time * 0.004 * tuning.motionSpeed) * 0.05 * tuning.motionAmount;
     this.coreGroup.scale.setScalar(pulse);
-    this.coreGroup.rotation.x = time * 0.00045 + profile.highs * 0.25;
-    this.coreGroup.rotation.y = time * 0.0009 + profile.mids * 0.45;
+    this.coreGroup.rotation.x = time * 0.00045 * tuning.motionSpeed + profile.highs * 0.25 * tuning.motionAmount;
+    this.coreGroup.rotation.y = time * 0.0009 * tuning.motionSpeed + profile.mids * 0.45 * tuning.motionAmount;
     this.coreMaterial.emissiveIntensity = tuning.coreEmissiveBase + bloom * tuning.coreEmissiveBloom + profile.level * tuning.coreEmissiveLevel;
     this.coreMaterial.color.setHSL(0.88 - profile.highs * 0.08, tuning.coreSaturation, tuning.coreLightnessBase + profile.level * tuning.coreLightnessLevel);
     this.shellMaterial.opacity = 0.08 + bloom * 0.08 + profile.highs * 0.12;
@@ -244,11 +245,11 @@ class SharedSpectrumRuntime implements ThemeRuntime {
   private updateRings(profile: Profile, time: number): void {
     const { tuning } = this.theme;
     this.haloRings.forEach((ring, index) => {
-      ring.rotation.z = time * (0.00016 + index * 0.00003) * (index % 2 === 0 ? 1 : -1);
-      ring.rotation.y += 0.0008 + profile.highs * 0.01;
-      ring.position.x = Math.sin(time * 0.0007 + index) * profile.mids * 1.4;
+      ring.rotation.z = time * (0.00016 + index * 0.00003) * tuning.motionSpeed * (index % 2 === 0 ? 1 : -1);
+      ring.rotation.y += (0.0008 + profile.highs * 0.01) * tuning.motionSpeed;
+      ring.position.x = Math.sin(time * 0.0007 * tuning.motionSpeed + index) * profile.mids * 1.4 * tuning.motionAmount;
       ring.material.opacity = tuning.ringOpacityBase + profile.level * tuning.ringOpacityLevel + index * 0.006;
-      ring.scale.setScalar(1 + profile.bass * 0.12 + Math.sin(time * 0.001 + index) * 0.03);
+      ring.scale.setScalar(1 + profile.bass * 0.12 * tuning.motionAmount + Math.sin(time * 0.001 * tuning.motionSpeed + index) * 0.03 * tuning.motionAmount);
     });
   }
 
@@ -260,14 +261,14 @@ class SharedSpectrumRuntime implements ThemeRuntime {
         const bucket = Math.floor((index / this.bars.length) * frequencyData.length);
         value = frequencyData[bucket] / 255;
       } else {
-        value = Math.max(0, 0.1 + Math.sin(time * 0.005 + index * 0.35) * 0.3 + profile.level * 0.8);
+        value = Math.max(0, 0.1 + Math.sin(time * 0.005 * tuning.motionSpeed + index * 0.35) * 0.3 * tuning.motionAmount + profile.level * 0.8);
       }
       bar.scale.y = 0.18 + value * 7.5;
       bar.position.y = -2.8 + bar.scale.y * 0.45;
       bar.material.opacity = tuning.barOpacityBase + value * tuning.barOpacityLevel;
       bar.material.color.setHSL(0.92 - value * 0.12 - index / 1000, tuning.barSaturation, tuning.barLightnessBase + value * tuning.barLightnessLevel);
     });
-    this.spectrumGroup.rotation.y = time * 0.0004 + profile.highs * 0.12;
+    this.spectrumGroup.rotation.y = time * 0.0004 * tuning.motionSpeed + profile.highs * 0.12 * tuning.motionAmount;
   }
 
   private updateRibbon(profile: Profile, time: number, waveformData?: Uint8Array, isLive = false): void {
@@ -281,12 +282,12 @@ class SharedSpectrumRuntime implements ThemeRuntime {
       const x = positions[i];
       const y = positions[i + 1];
       const waveformIndex = waveformData ? Math.floor((xIndex / (columns - 1)) * (waveformData.length - 1)) : 0;
-      const wave = isLive && waveformData ? (waveformData[waveformIndex] - 128) / 128 : Math.sin(time * 0.004 + x * 0.8 + yIndex * 0.15) * profile.level;
-      const radial = Math.sin(y * 0.6 + time * 0.0016) * 0.35;
-      positions[i + 2] = wave * (1.4 + profile.mids * 3.2) + radial + Math.sin(x * 0.35 - time * 0.0011) * profile.highs;
+      const wave = isLive && waveformData ? (waveformData[waveformIndex] - 128) / 128 : Math.sin(time * 0.004 * tuning.motionSpeed + x * 0.8 + yIndex * 0.15) * profile.level;
+      const radial = Math.sin(y * 0.6 + time * 0.0016 * tuning.motionSpeed) * 0.35 * tuning.motionAmount;
+      positions[i + 2] = wave * (1.4 + profile.mids * 3.2) * tuning.motionAmount + radial + Math.sin(x * 0.35 - time * 0.0011 * tuning.motionSpeed) * profile.highs * tuning.motionAmount;
     }
     this.ribbonGeometry.attributes.position.needsUpdate = true;
-    this.ribbon.rotation.z = Math.sin(time * 0.0004) * 0.16;
+    this.ribbon.rotation.z = Math.sin(time * 0.0004 * tuning.motionSpeed) * 0.16 * tuning.motionAmount;
     this.ribbonMaterial.opacity = tuning.ribbonOpacityBase + profile.level * tuning.ribbonOpacityLevel;
     this.ribbonMaterial.color.setHSL(0.74 + profile.highs * 0.08, tuning.ribbonSaturation, tuning.ribbonLightnessBase + profile.level * tuning.ribbonLightnessLevel);
   }
@@ -297,12 +298,12 @@ class SharedSpectrumRuntime implements ThemeRuntime {
     for (let i = 0; i < this.tunnelCount; i += 1) {
       const base = i * 3;
       const seedBase = i * 4;
-      const angle = this.tunnelSeeds[seedBase] + time * (0.0002 + this.tunnelSeeds[seedBase + 3] * 0.0012);
-      const radius = this.tunnelSeeds[seedBase + 1] * (0.55 + profile.level * 0.85 + Math.sin(time * 0.002 + i) * 0.05);
-      const travel = (time * (0.012 + profile.bass * 0.08) + i * 0.04) % 32;
+      const angle = this.tunnelSeeds[seedBase] + time * (0.0002 + this.tunnelSeeds[seedBase + 3] * 0.0012) * tuning.motionSpeed;
+      const radius = this.tunnelSeeds[seedBase + 1] * (0.55 + profile.level * 0.85 + Math.sin(time * 0.002 * tuning.motionSpeed + i) * 0.05 * tuning.motionAmount);
+      const travel = (time * (0.012 + profile.bass * 0.08) * tuning.motionSpeed + i * 0.04) % 32;
       const z = this.tunnelSeeds[seedBase + 2] + travel;
-      positions[base] = Math.cos(angle) * radius + Math.sin(time * 0.001 + i) * profile.mids * 0.2;
-      positions[base + 1] = Math.sin(angle) * radius * 0.7 + Math.cos(time * 0.0015 + i) * profile.highs * 0.22;
+      positions[base] = Math.cos(angle) * radius + Math.sin(time * 0.001 * tuning.motionSpeed + i) * profile.mids * 0.2 * tuning.motionAmount;
+      positions[base + 1] = Math.sin(angle) * radius * 0.7 + Math.cos(time * 0.0015 * tuning.motionSpeed + i) * profile.highs * 0.22 * tuning.motionAmount;
       positions[base + 2] = z;
     }
     this.tunnelGeometry.attributes.position.needsUpdate = true;
@@ -320,23 +321,24 @@ class SharedSpectrumRuntime implements ThemeRuntime {
         const xNorm = i / (points - 1);
         const x = (xNorm - 0.5) * 15;
         const waveformIndex = waveformData ? Math.floor(xNorm * (waveformData.length - 1)) : 0;
-        const wave = isLive && waveformData ? (waveformData[waveformIndex] - 128) / 128 : Math.sin(time * 0.005 + xNorm * 18 + lineIndex * 0.25) * profile.level;
+        const wave = isLive && waveformData ? (waveformData[waveformIndex] - 128) / 128 : Math.sin(time * 0.005 * tuning.motionSpeed + xNorm * 18 + lineIndex * 0.25) * profile.level;
         positions[i * 3] = x;
-        positions[i * 3 + 1] = wave * (0.5 + lineIndex * 0.02) + Math.sin(time * 0.001 + xNorm * 8 + lineIndex) * 0.05;
-        positions[i * 3 + 2] = Math.sin(xNorm * 8 + time * 0.0012 + lineIndex) * 0.2;
+        positions[i * 3 + 1] = wave * (0.5 + lineIndex * 0.02) * tuning.motionAmount + Math.sin(time * 0.001 * tuning.motionSpeed + xNorm * 8 + lineIndex) * 0.05 * tuning.motionAmount;
+        positions[i * 3 + 2] = Math.sin(xNorm * 8 + time * 0.0012 * tuning.motionSpeed + lineIndex) * 0.2 * tuning.motionAmount;
       }
       line.geometry.attributes.position.needsUpdate = true;
-      line.rotation.z = Math.sin(time * 0.0004 + lineIndex) * 0.09;
+      line.rotation.z = Math.sin(time * 0.0004 * tuning.motionSpeed + lineIndex) * 0.09 * tuning.motionAmount;
       line.material.opacity = tuning.lineOpacityBase + profile.level * tuning.lineOpacityLevel + lineIndex * 0.002;
     });
   }
 
   private updateCamera(profile: Profile, time: number, pointer: PointerState): void {
+    const { tuning } = this.theme;
     const driftX = pointer.x * 1.4;
     const driftY = pointer.y * 0.8;
     this.camera.position.x += (driftX - this.camera.position.x) * 0.03;
     this.camera.position.y += (0.6 + driftY - this.camera.position.y) * 0.03;
-    this.camera.position.z = 7.2 - profile.bass * 1.6 + Math.sin(time * 0.0005) * 0.25;
+    this.camera.position.z = 7.2 - profile.bass * 1.6 * tuning.motionAmount + Math.sin(time * 0.0005 * tuning.motionSpeed) * 0.25 * tuning.motionAmount;
     this.camera.lookAt(0, profile.mids * 0.12, -3.6);
   }
 }

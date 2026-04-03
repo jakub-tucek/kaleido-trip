@@ -5,7 +5,38 @@ export const bruiseBloomTheme: ThemeDefinition = {
   id: "bruise-bloom",
   label: "Bruise Bloom",
   category: "indie-emo",
-  createRuntime: ({ canvas, controls }) => createSharedSpectrumRuntime(canvas, controls, bruiseBloomTheme),
+  modes: [
+    {
+      id: "stage",
+      label: "Stage",
+    },
+    {
+      id: "barely-holding",
+      label: "Barely Holding",
+      overrides: {
+        tuning: {
+          frontLightBase: 1.1,
+          frontLightLevel: 3.7,
+          tunnelOpacityBase: 0.12,
+          ribbonOpacityBase: 0.05,
+          lineOpacityBase: 0.02,
+        },
+      },
+    },
+    {
+      id: "anthem-finale",
+      label: "Anthem Finale",
+      overrides: {
+        tuning: {
+          frontLightBloom: 3.8,
+          frontLightLevel: 6.2,
+          barOpacityLevel: 0.62,
+          tunnelOpacityLevel: 0.56,
+        },
+      },
+    },
+  ],
+  createRuntime: ({ canvas, controls }, theme) => createSharedSpectrumRuntime(canvas, controls, theme),
   palette: {
     fog: 0x04030a,
     ambient: 0x4f456b,
@@ -62,5 +93,7 @@ export const bruiseBloomTheme: ThemeDefinition = {
     tunnelLightness: 0.58,
     lineOpacityBase: 0.025,
     lineOpacityLevel: 0.12,
+    motionSpeed: 0.62,
+    motionAmount: 0.68,
   },
 };

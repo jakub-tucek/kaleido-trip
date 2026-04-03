@@ -5,7 +5,37 @@ export const glitterTearsTheme: ThemeDefinition = {
   id: "glitter-tears",
   label: "Glitter Tears",
   category: "dream-gaze",
-  createRuntime: ({ canvas, controls }) => createSharedSpectrumRuntime(canvas, controls, glitterTearsTheme),
+  modes: [
+    {
+      id: "mist",
+      label: "Mist",
+    },
+    {
+      id: "slow-drift",
+      label: "Slow Drift",
+      overrides: {
+        tuning: {
+          fogDensity: 0.072,
+          clearLightnessBloom: 0.035,
+          frontLightLevel: 4.8,
+          tunnelOpacityLevel: 0.42,
+        },
+      },
+    },
+    {
+      id: "starwash",
+      label: "Starwash",
+      overrides: {
+        tuning: {
+          clearSaturation: 0.44,
+          backLightHighs: 6.8,
+          rimLightBloom: 1.8,
+          lineOpacityLevel: 0.22,
+        },
+      },
+    },
+  ],
+  createRuntime: ({ canvas, controls }, theme) => createSharedSpectrumRuntime(canvas, controls, theme),
   palette: {
     fog: 0x090814,
     ambient: 0x5a5e92,
@@ -62,5 +92,7 @@ export const glitterTearsTheme: ThemeDefinition = {
     tunnelLightness: 0.72,
     lineOpacityBase: 0.05,
     lineOpacityLevel: 0.16,
+    motionSpeed: 0.48,
+    motionAmount: 0.58,
   },
 };

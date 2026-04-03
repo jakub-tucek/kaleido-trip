@@ -113,8 +113,8 @@ export class AudioEngine {
       return idleProfile(time);
     }
 
-    this.analyser.getByteFrequencyData(this.frequencyData);
-    this.analyser.getByteTimeDomainData(this.waveformData);
+    this.analyser.getByteFrequencyData(this.frequencyData as Uint8Array<ArrayBuffer>);
+    this.analyser.getByteTimeDomainData(this.waveformData as Uint8Array<ArrayBuffer>);
 
     let bass = 0;
     let mids = 0;

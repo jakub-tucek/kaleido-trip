@@ -3,7 +3,7 @@ import { glitterTearsTheme } from "./glitter-tears";
 import { shatterStrobeTheme } from "./shatter-strobe";
 import type { ThemeCategory, ThemeCategoryId, ThemeDefinition } from "./types";
 
-export type { ThemeCategory, ThemeCategoryId, ThemeDefinition } from "./types";
+export type { ThemeCategory, ThemeCategoryId, ThemeDefinition, ThemeMode, ThemeOverrides, ThemeRenderContext, ThemeRuntime, ThemeRuntimeContext } from "./types";
 
 export const themeCategories: ThemeCategory[] = [
   { id: "indie-emo", label: "Indie Emo" },
@@ -25,4 +25,27 @@ export function getTheme(themeId: string): ThemeDefinition {
   }
 
   return theme;
+}
+
+export function resolveThemeMode(theme: ThemeDefinition, modeId?: string): ThemeDefinition {
+  const mode = theme.modes.find((entry) => entry.id === modeId) ?? theme.modes[0];
+
+  if (!mode) {
+    return theme;
+  }
+
+  const resolved: ThemeDefinition = {
+    ...theme,
+    palette: {
+      ...theme.palette,
+      ...mode.overrides?.palette,
+    },
+    tuning: {
+      ...theme.tuning,
+      ...mode.overrides?.tuning,
+    },
+    createRuntime: (context, runtimeTheme) => theme.createRuntime(context, runtimeTheme),
+  };
+
+  return resolved;
 }

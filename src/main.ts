@@ -2,7 +2,7 @@ import "./styles.css";
 
 import { AudioEngine } from "./audio";
 import { VisualizerScene } from "./scene";
-import { getTheme, getThemesByCategory, themeCategories, type ThemeCategoryId } from "./themes";
+import { getTheme, getThemesByCategory, resolveThemeMode, themeCategories, type ThemeCategoryId } from "./themes";
 import type { PointerState } from "./types";
 
 function getRequiredElement<T extends HTMLElement>(selector: string): T {
@@ -26,6 +26,7 @@ const energyInput = getRequiredElement<HTMLInputElement>("#energy");
 const bloomInput = getRequiredElement<HTMLInputElement>("#bloom");
 const themeCategoryInput = getRequiredElement<HTMLSelectElement>("#themeCategory");
 const themeInput = getRequiredElement<HTMLSelectElement>("#theme");
+const themeModeInput = getRequiredElement<HTMLSelectElement>("#themeMode");
 
 const pointer: PointerState = { x: 0, y: 0 };
 
@@ -56,6 +57,32 @@ function syncFullscreenButton(): void {
   document.body.classList.toggle("fullscreen-mode", active);
 }
 
+function applySelectedTheme(): void {
+  const baseTheme = getTheme(themeInput.value);
+  const resolvedTheme = resolveThemeMode(baseTheme, themeModeInput.value);
+  scene.applyTheme(resolvedTheme);
+  setStatus(`Theme ready: ${baseTheme.label} / ${themeModeInput.selectedOptions[0]?.textContent ?? "default"}.`);
+}
+
+function renderThemeModes(themeId: string, selectedModeId?: string): void {
+  const theme = getTheme(themeId);
+  const nextModeId = selectedModeId && theme.modes.some((mode) => mode.id === selectedModeId)
+    ? selectedModeId
+    : theme.modes[0]?.id;
+
+  themeModeInput.innerHTML = "";
+
+  theme.modes.forEach((mode) => {
+    const option = document.createElement("option");
+    option.value = mode.id;
+    option.textContent = mode.label;
+    option.selected = mode.id === nextModeId;
+    themeModeInput.append(option);
+  });
+
+  applySelectedTheme();
+}
+
 function renderThemeOptions(categoryId: string, selectedThemeId?: string): void {
   const categoryThemes = getThemesByCategory(categoryId as ThemeCategoryId);
   const nextThemeId = selectedThemeId && categoryThemes.some((theme) => theme.id === selectedThemeId)
@@ -73,9 +100,7 @@ function renderThemeOptions(categoryId: string, selectedThemeId?: string): void 
   });
 
   if (nextThemeId) {
-    scene.applyTheme(getTheme(nextThemeId));
-    const theme = getTheme(nextThemeId);
-    setStatus(`Theme ready: ${theme.label}.`);
+    renderThemeModes(nextThemeId);
   }
 }
 
@@ -134,9 +159,11 @@ themeCategoryInput.addEventListener("change", () => {
 });
 
 themeInput.addEventListener("change", () => {
-  scene.applyTheme(getTheme(themeInput.value));
-  const theme = getTheme(themeInput.value);
-  setStatus(`Theme ready: ${theme.label}.`);
+  renderThemeModes(themeInput.value);
+});
+
+themeModeInput.addEventListener("change", () => {
+  applySelectedTheme();
 });
 
 player.addEventListener("play", () => {
