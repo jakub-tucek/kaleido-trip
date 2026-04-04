@@ -39,7 +39,7 @@ export const shatterStrobeTheme: ThemeDefinition = {
       },
     },
   ],
-  createRuntime: ({ canvas, controls }, theme) => createSharedSpectrumRuntime(canvas, controls, theme),
+  createRuntime: ({ canvas }, theme) => createSharedSpectrumRuntime(canvas, theme),
   palette: {
     fog: 0x020308,
     ambient: 0x243464,

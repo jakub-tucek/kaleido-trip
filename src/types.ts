@@ -9,7 +9,3 @@ export type PointerState = {
   x: number;
   y: number;
 };
-
-export type SceneControls = {
-  getBloom: () => number;
-};

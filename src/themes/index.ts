@@ -1,5 +1,5 @@
-import { bruiseBloomTheme } from "./bruise-bloom";
 import { glitterTearsTheme } from "./glitter-tears";
+import { midnightMathTheme } from "./midnight-math";
 import { shatterStrobeTheme } from "./shatter-strobe";
 import type { ThemeCategory, ThemeCategoryId, ThemeDefinition } from "./types";
 
@@ -11,7 +11,7 @@ export const themeCategories: ThemeCategory[] = [
   { id: "club-kaleido", label: "Club Kaleido" },
 ];
 
-export const themes: ThemeDefinition[] = [bruiseBloomTheme, glitterTearsTheme, shatterStrobeTheme];
+export const themes: ThemeDefinition[] = [midnightMathTheme, glitterTearsTheme, shatterStrobeTheme];
 
 export function getThemesByCategory(categoryId: ThemeCategoryId): ThemeDefinition[] {
   return themes.filter((theme) => theme.category === categoryId);

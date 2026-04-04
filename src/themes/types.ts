@@ -1,4 +1,4 @@
-import type { PointerState, Profile, SceneControls } from "../types";
+import type { PointerState, Profile } from "../types";
 
 export type ThemeRenderContext = {
   profile: Profile;
@@ -12,12 +12,12 @@ export type ThemeRenderContext = {
 export type ThemeRuntime = {
   resize: () => void;
   render: (context: ThemeRenderContext) => void;
+  setSeed: (seed: number) => void;
   dispose: () => void;
 };
 
 export type ThemeRuntimeContext = {
   canvas: HTMLCanvasElement;
-  controls: SceneControls;
 };
 
 export type ThemeOverrides = {

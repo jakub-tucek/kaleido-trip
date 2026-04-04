@@ -22,8 +22,6 @@ const demoButton = getRequiredElement<HTMLButtonElement>("#demoButton");
 const fileInput = getRequiredElement<HTMLInputElement>("#fileInput");
 const player = getRequiredElement<HTMLAudioElement>("#player");
 const statusText = getRequiredElement<HTMLParagraphElement>("#status");
-const energyInput = getRequiredElement<HTMLInputElement>("#energy");
-const bloomInput = getRequiredElement<HTMLInputElement>("#bloom");
 const themeCategoryInput = getRequiredElement<HTMLSelectElement>("#themeCategory");
 const themeInput = getRequiredElement<HTMLSelectElement>("#theme");
 const themeModeInput = getRequiredElement<HTMLSelectElement>("#themeMode");
@@ -34,8 +32,24 @@ const setStatus = (message: string): void => {
   statusText.textContent = message;
 };
 
-const audioEngine = new AudioEngine(player, () => Number(energyInput.value), setStatus);
-const scene = new VisualizerScene(canvas, { getBloom: () => Number(bloomInput.value) });
+const audioEngine = new AudioEngine(player, setStatus);
+const scene = new VisualizerScene(canvas);
+let currentSeed = 0;
+
+function hashSeed(value: string): number {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash;
+}
+
+function applySongSeed(seedSource: string): void {
+  currentSeed = hashSeed(seedSource);
+  scene.setSeed(currentSeed);
+}
 
 async function toggleFullscreen(): Promise<void> {
   try {
@@ -61,6 +75,7 @@ function applySelectedTheme(): void {
   const baseTheme = getTheme(themeInput.value);
   const resolvedTheme = resolveThemeMode(baseTheme, themeModeInput.value);
   scene.applyTheme(resolvedTheme);
+  scene.setSeed(currentSeed);
   setStatus(`Theme ready: ${baseTheme.label} / ${themeModeInput.selectedOptions[0]?.textContent ?? "default"}.`);
 }
 
@@ -112,7 +127,7 @@ themeCategories.forEach((category) => {
 });
 
 themeCategoryInput.value = themeCategories[0].id;
-renderThemeOptions(themeCategoryInput.value, "bruise-bloom");
+renderThemeOptions(themeCategoryInput.value, "midnight-math");
 
 function render(time: number): void {
   const profile = audioEngine.getProfile(time);
@@ -138,6 +153,7 @@ window.addEventListener("pointermove", (event) => {
 });
 
 micButton.addEventListener("click", () => {
+  applySongSeed(`mic:${Date.now()}`);
   void audioEngine.useMicrophone();
 });
 
@@ -146,11 +162,15 @@ fullscreenButton.addEventListener("click", () => {
 });
 
 demoButton.addEventListener("click", () => {
+  applySongSeed("demo:pulse");
   audioEngine.setDemoMode();
 });
 
 fileInput.addEventListener("change", (event) => {
   const [file] = (event.currentTarget as HTMLInputElement).files ?? [];
+  if (file) {
+    applySongSeed(`file:${file.name}:${file.size}:${file.lastModified}`);
+  }
   audioEngine.useAudioFile(file);
 });
 

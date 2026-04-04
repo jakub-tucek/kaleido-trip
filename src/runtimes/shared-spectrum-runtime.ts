@@ -1,9 +1,11 @@
 import * as THREE from "three";
 
-import type { PointerState, Profile, SceneControls } from "../types";
+import type { PointerState, Profile } from "../types";
 import type { ThemeDefinition, ThemeRenderContext, ThemeRuntime } from "../themes";
 
 class SharedSpectrumRuntime implements ThemeRuntime {
+  private static readonly DEFAULT_BLOOM = 0.62;
+
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.PerspectiveCamera;
@@ -29,7 +31,6 @@ class SharedSpectrumRuntime implements ThemeRuntime {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly controls: SceneControls,
     private readonly theme: ThemeDefinition
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
@@ -184,7 +185,7 @@ class SharedSpectrumRuntime implements ThemeRuntime {
   render(context: ThemeRenderContext): void {
     const { profile, time, pointer, frequencyData, waveformData, isLive } = context;
     const { tuning } = this.theme;
-    const bloom = this.controls.getBloom();
+    const bloom = SharedSpectrumRuntime.DEFAULT_BLOOM;
     const motionSpeed = tuning.motionSpeed;
 
     this.renderer.setClearColor(
@@ -214,6 +215,8 @@ class SharedSpectrumRuntime implements ThemeRuntime {
 
     this.renderer.render(this.scene, this.camera);
   }
+
+  setSeed(_seed: number): void {}
 
   dispose(): void {
     this.renderer.dispose();
@@ -307,7 +310,7 @@ class SharedSpectrumRuntime implements ThemeRuntime {
       positions[base + 2] = z;
     }
     this.tunnelGeometry.attributes.position.needsUpdate = true;
-    this.tunnelMaterial.size = 0.035 + profile.highs * 0.08 + this.controls.getBloom() * 0.08;
+    this.tunnelMaterial.size = 0.035 + profile.highs * 0.08 + SharedSpectrumRuntime.DEFAULT_BLOOM * 0.08;
     this.tunnelMaterial.opacity = tuning.tunnelOpacityBase + profile.level * tuning.tunnelOpacityLevel;
     this.tunnelMaterial.color.setHSL(0.86 - profile.highs * 0.08, tuning.tunnelSaturation, tuning.tunnelLightness);
   }
@@ -345,8 +348,7 @@ class SharedSpectrumRuntime implements ThemeRuntime {
 
 export function createSharedSpectrumRuntime(
   canvas: HTMLCanvasElement,
-  controls: SceneControls,
   theme: ThemeDefinition
 ): ThemeRuntime {
-  return new SharedSpectrumRuntime(canvas, controls, theme);
+  return new SharedSpectrumRuntime(canvas, theme);
 }

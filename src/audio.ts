@@ -14,6 +14,8 @@ function idleProfile(time: number): Profile {
 }
 
 export class AudioEngine {
+  private static readonly DEFAULT_GAIN = 1.35;
+
   private audioContext?: AudioContext;
   private analyser?: AnalyserNode;
   private sourceNode?: MediaStreamAudioSourceNode | MediaElementAudioSourceNode;
@@ -27,7 +29,6 @@ export class AudioEngine {
 
   constructor(
     private readonly player: HTMLAudioElement,
-    private readonly getEnergy: () => number,
     private readonly setStatus: (message: string) => void
   ) {}
 
@@ -136,7 +137,7 @@ export class AudioEngine {
     mids /= Math.max(1, this.frequencyData.length * 0.27);
     highs /= Math.max(1, this.frequencyData.length * 0.65);
 
-    const gain = this.getEnergy();
+    const gain = AudioEngine.DEFAULT_GAIN;
     const level = Math.min(1, (bass * 0.95 + mids * 0.7 + highs * 0.45) * gain);
 
     return {
