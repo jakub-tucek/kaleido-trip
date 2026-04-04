@@ -82,7 +82,8 @@ h1 {
 }
 
 .description,
-.status {
+.status,
+.themeMeta {
   color: var(--muted);
 }
 
@@ -164,6 +165,14 @@ input[type="range"] {
 .status {
   margin: 14px 0 12px;
   min-height: 1.5em;
+}
+
+.themeMeta {
+  margin: 12px 0 4px;
+  min-height: 1.2em;
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 #player {

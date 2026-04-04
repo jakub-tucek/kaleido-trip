@@ -40,6 +40,11 @@ export const shatterStrobeTheme: ThemeDefinition = {
     },
   ],
   createRuntime: ({ canvas }, theme) => createSharedSpectrumRuntime(canvas, theme),
+  runtime: {
+    allowedPaletteFamilies: ["acid", "whiteheat", "teal"],
+    allowedStructures: ["shard-storm", "wave-grid"],
+    phaseDurationMs: 16000,
+  },
   palette: {
     fog: 0x020308,
     ambient: 0x243464,

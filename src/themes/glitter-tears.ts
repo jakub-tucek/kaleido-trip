@@ -36,6 +36,11 @@ export const glitterTearsTheme: ThemeDefinition = {
     },
   ],
   createRuntime: ({ canvas }, theme) => createSharedSpectrumRuntime(canvas, theme),
+  runtime: {
+    allowedPaletteFamilies: ["violet", "teal", "whiteheat"],
+    allowedStructures: ["cathedral", "orbit-field"],
+    phaseDurationMs: 24000,
+  },
   palette: {
     fog: 0x090814,
     ambient: 0x5a5e92,

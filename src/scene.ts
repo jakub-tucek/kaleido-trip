@@ -21,6 +21,10 @@ export class VisualizerScene {
     this.currentRuntime?.setSeed(seed);
   }
 
+  getState(): { paletteFamily?: string; palettePhase?: number; structure?: string } {
+    return this.currentRuntime?.getState() ?? {};
+  }
+
   render(context: ThemeRenderContext): void {
     if (!this.currentRuntime || !this.currentTheme) {
       return;

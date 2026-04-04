@@ -26,3 +26,13 @@ pnpm dev
 Then open the local URL printed by Vite.
 
 For microphone input, use a browser that allows `getUserMedia` on your chosen origin. Vite's localhost server is suitable for this.
+
+## Deploy
+
+GitHub Pages deployment is configured through `.github/workflows/deploy-pages.yml`.
+
+1. In GitHub, open `Settings -> Pages`.
+2. Set `Source` to `GitHub Actions`.
+3. Push to `main` or run the `Deploy GitHub Pages` workflow manually.
+
+The site will be published at `https://jakub-tucek.github.io/kaleido-trip/`.

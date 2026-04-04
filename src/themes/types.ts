@@ -1,4 +1,5 @@
 import type { PointerState, Profile } from "../types";
+import type { PaletteFamilyId, StructureVariantId } from "../runtimes/procedural-constants";
 
 export type ThemeRenderContext = {
   profile: Profile;
@@ -13,6 +14,7 @@ export type ThemeRuntime = {
   resize: () => void;
   render: (context: ThemeRenderContext) => void;
   setSeed: (seed: number) => void;
+  getState: () => { paletteFamily?: string; palettePhase?: number; structure?: string };
   dispose: () => void;
 };
 
@@ -23,6 +25,7 @@ export type ThemeRuntimeContext = {
 export type ThemeOverrides = {
   palette?: Partial<ThemeDefinition["palette"]>;
   tuning?: Partial<ThemeDefinition["tuning"]>;
+  runtime?: Partial<ThemeDefinition["runtime"]>;
 };
 
 export type ThemeMode = {
@@ -44,6 +47,11 @@ export type ThemeDefinition = {
   category: ThemeCategoryId;
   modes: ThemeMode[];
   createRuntime: (context: ThemeRuntimeContext, theme: ThemeDefinition) => ThemeRuntime;
+  runtime: {
+    allowedPaletteFamilies: PaletteFamilyId[];
+    allowedStructures: StructureVariantId[];
+    phaseDurationMs: number;
+  };
   palette: {
     fog: number;
     ambient: number;

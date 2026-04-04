@@ -22,6 +22,7 @@ const demoButton = getRequiredElement<HTMLButtonElement>("#demoButton");
 const fileInput = getRequiredElement<HTMLInputElement>("#fileInput");
 const player = getRequiredElement<HTMLAudioElement>("#player");
 const statusText = getRequiredElement<HTMLParagraphElement>("#status");
+const themeMetaText = getRequiredElement<HTMLParagraphElement>("#themeMeta");
 const themeCategoryInput = getRequiredElement<HTMLSelectElement>("#themeCategory");
 const themeInput = getRequiredElement<HTMLSelectElement>("#theme");
 const themeModeInput = getRequiredElement<HTMLSelectElement>("#themeMode");
@@ -35,6 +36,7 @@ const setStatus = (message: string): void => {
 const audioEngine = new AudioEngine(player, setStatus);
 const scene = new VisualizerScene(canvas);
 let currentSeed = 0;
+let lastThemeMeta = "";
 
 function hashSeed(value: string): number {
   let hash = 0;
@@ -139,6 +141,13 @@ function render(time: number): void {
     waveformData: audioEngine.getWaveformData(),
     isLive: audioEngine.isAudioReady() && !audioEngine.isDemoMode(),
   });
+
+  const runtimeState = scene.getState();
+  const meta = `${runtimeState.structure ?? "-"} / ${runtimeState.paletteFamily ?? "-"} / phase ${runtimeState.palettePhase ?? 1}`;
+  if (meta !== lastThemeMeta) {
+    themeMetaText.textContent = meta;
+    lastThemeMeta = meta;
+  }
 
   requestAnimationFrame(render);
 }

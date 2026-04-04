@@ -36,6 +36,10 @@ export function resolveThemeMode(theme: ThemeDefinition, modeId?: string): Theme
 
   const resolved: ThemeDefinition = {
     ...theme,
+    runtime: {
+      ...theme.runtime,
+      ...mode.overrides?.runtime,
+    },
     palette: {
       ...theme.palette,
       ...mode.overrides?.palette,

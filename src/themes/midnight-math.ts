@@ -14,6 +14,11 @@ export const midnightMathTheme: ThemeDefinition = {
       id: "cathedral",
       label: "Cathedral",
       overrides: {
+        runtime: {
+          allowedPaletteFamilies: ["bruise", "ember", "violet"],
+          allowedStructures: ["cathedral", "orbit-field"],
+          phaseDurationMs: 26000,
+        },
         tuning: {
           clearLightnessBase: 0.016,
           clearLightnessBloom: 0.018,
@@ -27,6 +32,11 @@ export const midnightMathTheme: ThemeDefinition = {
       id: "sleepless",
       label: "Sleepless",
       overrides: {
+        runtime: {
+          allowedPaletteFamilies: ["bruise", "violet", "whiteheat", "acid"],
+          allowedStructures: ["shard-storm", "wave-grid", "orbit-field"],
+          phaseDurationMs: 18000,
+        },
         tuning: {
           motionSpeed: 0.96,
           motionAmount: 1.02,
@@ -37,6 +47,11 @@ export const midnightMathTheme: ThemeDefinition = {
     },
   ],
   createRuntime: ({ canvas }, theme) => createProceduralMathRuntime(canvas, theme),
+  runtime: {
+    allowedPaletteFamilies: ["bruise", "ember", "violet", "teal", "acid", "whiteheat"],
+    allowedStructures: ["cathedral", "shard-storm", "wave-grid", "orbit-field"],
+    phaseDurationMs: 22000,
+  },
   palette: {
     fog: 0x05040b,
     ambient: 0x46385f,

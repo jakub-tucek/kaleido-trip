@@ -1,4 +1,5 @@
 import type { ThemeDefinition, ThemeRenderContext, ThemeRuntime } from "../themes";
+import { PALETTE_FAMILIES, STRUCTURE_VARIANTS } from "./procedural-constants";
 
 class ProceduralMathRuntime implements ThemeRuntime {
   private readonly context: CanvasRenderingContext2D;
@@ -18,6 +19,9 @@ class ProceduralMathRuntime implements ThemeRuntime {
   private seedDensity = 1;
   private structureVariant = 0;
   private sparseMode = 0.82;
+  private paletteVariant = 0;
+  private seedIndex = 0;
+  private currentPhase = 0;
 
   private getBandEnergy(frequencyData: Uint8Array | undefined, startRatio: number, endRatio: number, fallback: number): number {
     if (!frequencyData || frequencyData.length === 0) {
@@ -54,6 +58,23 @@ class ProceduralMathRuntime implements ThemeRuntime {
     return bestIndex - start;
   }
 
+  private shiftHexColor(hex: number, hueShift: number, saturationScale: number, lightnessOffset: number): string {
+    const color = this.hexToHsl(hex);
+    const hue = (color.h + hueShift + 1) % 1;
+    const saturation = Math.max(0, Math.min(1, color.s * saturationScale));
+    const lightness = Math.max(0, Math.min(1, color.l + lightnessOffset));
+
+    return `hsla(${hue * 360}, ${saturation * 100}%, ${lightness * 100}%, 1)`;
+  }
+
+  private alphaColor(baseHex: number, alpha: number, lowEnergy: number, highEnergy: number): string {
+    const family = PALETTE_FAMILIES[this.paletteVariant % PALETTE_FAMILIES.length];
+    const hueShift = family.hueShift + lowEnergy * 0.03 - highEnergy * 0.02;
+    const saturationScale = family.saturationScale * (0.8 + this.seedSpread * 0.2 + highEnergy * 0.18);
+    const lightnessOffset = family.lightnessOffset + lowEnergy * 0.04;
+    return this.shiftHexColor(baseHex, hueShift, saturationScale, lightnessOffset).replace(", 1)", `, ${alpha})`);
+  }
+
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly theme: ThemeDefinition
@@ -84,6 +105,7 @@ class ProceduralMathRuntime implements ThemeRuntime {
     const midEnergy = this.getBandEnergy(frequencyData, 0.16, 0.45, profile.mids);
     const highEnergy = this.getBandEnergy(frequencyData, 0.45, 1, profile.highs);
     const highPeakIndex = this.getHighPeakIndex(frequencyData);
+    this.updatePhase(time, lowEnergy, highEnergy);
 
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawBackground(profile, pointer, lowEnergy, midEnergy, highEnergy);
@@ -103,6 +125,7 @@ class ProceduralMathRuntime implements ThemeRuntime {
 
   setSeed(seed: number): void {
     const normalized = Math.abs(seed) % 100000;
+    this.seedIndex = normalized;
     this.signatureA = 0.24 + (normalized % 97) / 37;
     this.signatureB = 0.72 + (normalized % 193) / 61;
     this.signatureC = 1.14 + (normalized % 389) / 83;
@@ -111,14 +134,24 @@ class ProceduralMathRuntime implements ThemeRuntime {
     this.seedWarp = 0.82 + (normalized % 43) / 30;
     this.seedTilt = ((normalized % 23) - 11) / 200;
     this.seedDensity = 0.8 + (normalized % 31) / 26;
-    this.structureVariant = normalized % 4;
+    this.structureVariant = normalized % STRUCTURE_VARIANTS.length;
+    this.paletteVariant = Math.floor(normalized / 7) % PALETTE_FAMILIES.length;
     this.sparseMode = 0.62 + (normalized % 17) / 40;
+    this.currentPhase = 0;
     this.bassMemory = 0;
     this.midsMemory = 0;
     this.highsMemory = 0;
   }
 
   dispose(): void {}
+
+  getState(): { paletteFamily?: string; palettePhase?: number; structure?: string } {
+    return {
+      paletteFamily: PALETTE_FAMILIES[this.paletteVariant]?.label,
+      palettePhase: this.currentPhase + 1,
+      structure: STRUCTURE_VARIANTS[this.structureVariant]?.label,
+    };
+  }
 
   private updateSignature(profile: ThemeRenderContext["profile"]): void {
     this.bassMemory = this.bassMemory * 0.94 + profile.bass * 0.06;
@@ -130,6 +163,27 @@ class ProceduralMathRuntime implements ThemeRuntime {
     this.signatureC += 0.0022 + this.highsMemory * 0.01;
   }
 
+  private updatePhase(time: number, lowEnergy: number, highEnergy: number): void {
+    const allowedPaletteFamilies = this.theme.runtime.allowedPaletteFamilies;
+    const allowedStructures = this.theme.runtime.allowedStructures;
+    const phaseDuration = Math.max(6000, this.theme.runtime.phaseDurationMs - Math.floor(lowEnergy * 3000));
+    const nextPhase = Math.floor(time / phaseDuration);
+
+    if (nextPhase === this.currentPhase) {
+      return;
+    }
+
+    this.currentPhase = nextPhase;
+    const paletteOffset = (this.seedIndex + nextPhase * 3 + Math.floor(highEnergy * 10)) % allowedPaletteFamilies.length;
+    const structureOffset = (this.seedIndex + nextPhase * 5 + Math.floor(lowEnergy * 10)) % allowedStructures.length;
+
+    const paletteId = allowedPaletteFamilies[paletteOffset];
+    const structureId = allowedStructures[structureOffset];
+
+    this.paletteVariant = Math.max(0, PALETTE_FAMILIES.findIndex((family) => family.id === paletteId));
+    this.structureVariant = Math.max(0, STRUCTURE_VARIANTS.findIndex((variant) => variant.id === structureId));
+  }
+
   private drawBackground(
     profile: ThemeRenderContext["profile"],
     pointer: ThemeRenderContext["pointer"],
@@ -138,9 +192,9 @@ class ProceduralMathRuntime implements ThemeRuntime {
     highEnergy: number
   ): void {
     const gradient = this.context.createLinearGradient(0, 0, this.width, this.height);
-    gradient.addColorStop(0, this.hexToRgba(this.theme.palette.fog, 1));
-    gradient.addColorStop(0.45, this.hexToRgba(this.theme.palette.core, 1));
-    gradient.addColorStop(1, this.hexToRgba(this.theme.palette.backLight, 0.18 + lowEnergy * 0.34));
+    gradient.addColorStop(0, this.alphaColor(this.theme.palette.fog, 1, lowEnergy, highEnergy));
+    gradient.addColorStop(0.45, this.alphaColor(this.theme.palette.core, 1, lowEnergy, highEnergy));
+    gradient.addColorStop(1, this.alphaColor(this.theme.palette.backLight, 0.18 + lowEnergy * 0.34, lowEnergy, highEnergy));
 
     this.context.fillStyle = gradient;
     this.context.fillRect(0, 0, this.width, this.height);
@@ -153,16 +207,16 @@ class ProceduralMathRuntime implements ThemeRuntime {
       this.height * (0.42 - pointer.y * 0.28),
       this.width * (0.24 + lowEnergy * 0.22 + midEnergy * 0.08)
     );
-    haze.addColorStop(0, this.hexToRgba(this.theme.palette.backLight, 0.08 + lowEnergy * 0.22));
-    haze.addColorStop(0.5, this.hexToRgba(this.theme.palette.ringB, 0.04 + midEnergy * 0.1));
-    haze.addColorStop(1, this.hexToRgba(this.theme.palette.fog, 0));
+    haze.addColorStop(0, this.alphaColor(this.theme.palette.backLight, 0.08 + lowEnergy * 0.22, lowEnergy, highEnergy));
+    haze.addColorStop(0.5, this.alphaColor(this.theme.palette.ringB, 0.04 + midEnergy * 0.1, lowEnergy, highEnergy));
+    haze.addColorStop(1, this.alphaColor(this.theme.palette.fog, 0, lowEnergy, highEnergy));
 
     this.context.fillStyle = haze;
     this.context.fillRect(0, 0, this.width, this.height);
 
     const floorGlow = this.context.createLinearGradient(0, this.height * 0.6, 0, this.height);
-    floorGlow.addColorStop(0, this.hexToRgba(this.theme.palette.fog, 0));
-    floorGlow.addColorStop(1, this.hexToRgba(this.theme.palette.frontLight, 0.06 + lowEnergy * 0.18 + profile.bass * 0.08));
+    floorGlow.addColorStop(0, this.alphaColor(this.theme.palette.fog, 0, lowEnergy, highEnergy));
+    floorGlow.addColorStop(1, this.alphaColor(this.theme.palette.frontLight, 0.06 + lowEnergy * 0.18 + profile.bass * 0.08, lowEnergy, highEnergy));
     this.context.fillStyle = floorGlow;
     this.context.fillRect(0, this.height * 0.56, this.width, this.height * 0.44);
   }
@@ -172,9 +226,11 @@ class ProceduralMathRuntime implements ThemeRuntime {
 
     for (let band = 0; band < bandCount; band += 1) {
       this.context.beginPath();
-      this.context.strokeStyle = this.hexToRgba(
+      this.context.strokeStyle = this.alphaColor(
         band % 2 === 0 ? this.theme.palette.lineA : this.theme.palette.lineB,
-        (aggressive ? 0.06 : 0.025) + profile.level * (aggressive ? 0.08 : 0.04)
+        (aggressive ? 0.06 : 0.025) + profile.level * (aggressive ? 0.08 : 0.04),
+        this.bassMemory,
+        this.highsMemory
       );
       this.context.lineWidth = 1 + band * 0.08;
 
@@ -221,9 +277,11 @@ class ProceduralMathRuntime implements ThemeRuntime {
       const phase = time * 0.00025 + arch * 0.3 + this.seedPhase;
 
       this.context.beginPath();
-      this.context.strokeStyle = this.hexToRgba(
+      this.context.strokeStyle = this.alphaColor(
         arch % 2 === 0 ? this.theme.palette.ringA : this.theme.palette.lineB,
-          0.025 + highEnergy * 0.12
+        0.025 + highEnergy * 0.12,
+        this.bassMemory,
+        highEnergy
       );
       this.context.lineWidth = 1.1 + arch * 0.2;
 
@@ -261,8 +319,8 @@ class ProceduralMathRuntime implements ThemeRuntime {
       const yOffset = (lineIndex - lineCount / 2) * this.height * (verticalBias ? 0.03 : 0.024) * this.sparseMode;
       this.context.beginPath();
       this.context.strokeStyle = lineIndex % 3 === 0
-        ? this.hexToRgba(this.theme.palette.lineA, 0.04 + profile.level * 0.08)
-        : this.hexToRgba(this.theme.palette.lineB, 0.025 + profile.highs * 0.05);
+        ? this.alphaColor(this.theme.palette.lineA, 0.04 + profile.level * 0.08, this.bassMemory, this.highsMemory)
+        : this.alphaColor(this.theme.palette.lineB, 0.025 + profile.highs * 0.05, this.bassMemory, this.highsMemory);
       this.context.lineWidth = 0.8 + lineIndex * 0.04;
 
       const pointCount = verticalBias ? 120 : 150;
@@ -305,7 +363,7 @@ class ProceduralMathRuntime implements ThemeRuntime {
 
     layers.forEach((layer, index) => {
       this.context.beginPath();
-      this.context.strokeStyle = this.hexToRgba(layer.hue, layer.alpha + profile.level * 0.1);
+      this.context.strokeStyle = this.alphaColor(layer.hue, layer.alpha + profile.level * 0.1, this.bassMemory, this.highsMemory);
       this.context.lineWidth = 1.4 + index * 0.6;
 
       const stepCount = 520;
@@ -343,14 +401,35 @@ class ProceduralMathRuntime implements ThemeRuntime {
       const bend = Math.sin(angle * (4 + this.seedWarp + highPeakIndex * 0.01) + time * 0.0004) * (0.12 + highEnergy * 0.25);
 
       this.context.beginPath();
-      this.context.strokeStyle = this.hexToRgba(
+      this.context.strokeStyle = this.alphaColor(
         ray % 2 === 0 ? this.theme.palette.frontLight : this.theme.palette.tunnel,
-          0.04 + highEnergy * 0.16
+        0.04 + highEnergy * 0.16,
+        this.bassMemory,
+        highEnergy
       );
       this.context.lineWidth = 0.8 + (ray % 4) * 0.35;
       this.context.moveTo(centerX + Math.cos(angle) * inner, centerY + Math.sin(angle) * inner);
       this.context.lineTo(centerX + Math.cos(angle + bend) * outer, centerY + Math.sin(angle - bend) * outer);
       this.context.stroke();
+
+      const tipX = centerX + Math.cos(angle + bend) * outer;
+      const tipY = centerY + Math.sin(angle - bend) * outer;
+      const sideA = angle + Math.PI * 0.5;
+      const sideB = angle - Math.PI * 0.5;
+      const wing = 8 + highEnergy * 18;
+
+      this.context.beginPath();
+      this.context.fillStyle = this.alphaColor(
+        ray % 2 === 0 ? this.theme.palette.frontLight : this.theme.palette.lineA,
+        0.03 + highEnergy * 0.08,
+        this.bassMemory,
+        highEnergy
+      );
+      this.context.moveTo(tipX, tipY);
+      this.context.lineTo(tipX + Math.cos(sideA) * wing, tipY + Math.sin(sideA) * wing);
+      this.context.lineTo(tipX + Math.cos(sideB) * wing, tipY + Math.sin(sideB) * wing);
+      this.context.closePath();
+      this.context.fill();
     }
   }
 
@@ -361,9 +440,11 @@ class ProceduralMathRuntime implements ThemeRuntime {
 
     for (let shard = 0; shard < shardCount; shard += 1) {
       this.context.beginPath();
-      this.context.strokeStyle = this.hexToRgba(
+      this.context.strokeStyle = this.alphaColor(
         shard % 2 === 0 ? this.theme.palette.frontLight : this.theme.palette.ringB,
-        0.06 + profile.mids * 0.12
+        0.06 + profile.mids * 0.12,
+        this.bassMemory,
+        this.highsMemory
       );
       this.context.lineWidth = 1.2 + shard * 0.5;
 
@@ -414,9 +495,18 @@ class ProceduralMathRuntime implements ThemeRuntime {
         this.context.save();
         this.context.translate(centerX, centerY);
         this.context.rotate(rotation);
-        this.context.strokeStyle = this.hexToRgba(
+        this.context.fillStyle = this.alphaColor(
+          (row + column) % 2 === 0 ? this.theme.palette.ringA : this.theme.palette.tunnel,
+          0.02 + highEnergy * 0.08,
+          this.bassMemory,
+          highEnergy
+        );
+        this.context.fillRect(-size, -size, size * 2, size * 2);
+        this.context.strokeStyle = this.alphaColor(
           (row + column) % 2 === 0 ? this.theme.palette.lineA : this.theme.palette.lineB,
-          0.05 + highEnergy * 0.14
+          0.05 + highEnergy * 0.14,
+          this.bassMemory,
+          highEnergy
         );
         this.context.lineWidth = 1.2;
         this.context.strokeRect(-size, -size, size * 2, size * 2);
@@ -449,7 +539,12 @@ class ProceduralMathRuntime implements ThemeRuntime {
       const size = (sparse ? 2.5 : 1.5) + audioValue * (sparse ? 7 : 5) + (index % 3);
 
       this.context.beginPath();
-      this.context.fillStyle = this.hexToRgba(index % 2 === 0 ? this.theme.palette.tunnel : this.theme.palette.rimLight, 0.12 + audioValue * 0.35);
+      this.context.fillStyle = this.alphaColor(
+        index % 2 === 0 ? this.theme.palette.tunnel : this.theme.palette.rimLight,
+        0.12 + audioValue * 0.35,
+        this.bassMemory,
+        this.highsMemory
+      );
       this.context.arc(x, y, size, 0, Math.PI * 2);
       this.context.fill();
     }
@@ -472,9 +567,11 @@ class ProceduralMathRuntime implements ThemeRuntime {
 
     for (let arm = 0; arm < arms; arm += 1) {
       this.context.beginPath();
-      this.context.strokeStyle = this.hexToRgba(
+      this.context.strokeStyle = this.alphaColor(
         arm % 2 === 0 ? this.theme.palette.ringA : this.theme.palette.ringB,
-        0.05 + profile.level * 0.08
+        0.05 + profile.level * 0.08,
+        this.bassMemory,
+        highEnergy
       );
       this.context.lineWidth = 1.1;
 
@@ -493,6 +590,23 @@ class ProceduralMathRuntime implements ThemeRuntime {
       }
 
       this.context.stroke();
+
+      const blobRadius = 8 + highEnergy * 18 + arm * 2;
+      this.context.beginPath();
+      this.context.fillStyle = this.alphaColor(
+        arm % 2 === 0 ? this.theme.palette.tunnel : this.theme.palette.frontLight,
+        0.03 + highEnergy * 0.08,
+        this.bassMemory,
+        highEnergy
+      );
+      this.context.arc(
+        centerX + Math.cos(time * 0.0003 + arm) * blobRadius * 4,
+        centerY + Math.sin(time * 0.00024 + arm * 1.3) * blobRadius * 3,
+        blobRadius,
+        0,
+        Math.PI * 2
+      );
+      this.context.fill();
     }
   }
 
@@ -555,6 +669,33 @@ class ProceduralMathRuntime implements ThemeRuntime {
     const green = (hex >> 8) & 255;
     const blue = hex & 255;
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  private hexToHsl(hex: number): { h: number; s: number; l: number } {
+    const red = ((hex >> 16) & 255) / 255;
+    const green = ((hex >> 8) & 255) / 255;
+    const blue = (hex & 255) / 255;
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    const lightness = (max + min) / 2;
+
+    if (max === min) {
+      return { h: 0, s: 0, l: lightness };
+    }
+
+    const delta = max - min;
+    const saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+    let hue = 0;
+
+    if (max === red) {
+      hue = (green - blue) / delta + (green < blue ? 6 : 0);
+    } else if (max === green) {
+      hue = (blue - red) / delta + 2;
+    } else {
+      hue = (red - green) / delta + 4;
+    }
+
+    return { h: hue / 6, s: saturation, l: lightness };
   }
 }
 

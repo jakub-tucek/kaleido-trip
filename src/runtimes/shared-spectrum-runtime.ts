@@ -218,6 +218,14 @@ class SharedSpectrumRuntime implements ThemeRuntime {
 
   setSeed(_seed: number): void {}
 
+  getState(): { paletteFamily?: string; palettePhase?: number; structure?: string } {
+    return {
+      paletteFamily: "Fixed",
+      palettePhase: 1,
+      structure: "Spectrum",
+    };
+  }
+
   dispose(): void {
     this.renderer.dispose();
     this.scene.traverse((object: THREE.Object3D) => {
